@@ -6,7 +6,11 @@ import App from './App';
 Enzyme.configure({ adapter: new EnzymeAdapter() });
 
 const setup = (props = {}, state = null) => {
-  return shallow(<App {...props} />);
+  const wrapper = shallow(<App {...props} />);
+  if (state) {
+    wrapper.setState(state);
+  }
+  return wrapper;
 };
 
 const findByTestAttr = (wrapper, val) => {
@@ -32,9 +36,45 @@ test('renders counter display', () => {
 });
 
 test('counter starts at 0', () => {
-
+  const wrapper = setup();
+  const initialCounterState = wrapper.state('counter');
+  expect(initialCounterState).toBe(0);
 });
 
 test('clicking button increments counter display', () => {
+  const counter = 7;
+  const wrapper = setup(null, { counter });
+  const button = findByTestAttr(wrapper, 'increment-button');
+  button.simulate('click');
+  const counterDisplay = findByTestAttr(wrapper, 'counter-display');
+  expect(counterDisplay.text()).toContain(counter + 1);
+});
 
+test('displays error when decrement clicked at zero', () => {
+  const counter = 0;
+  const errorMessage = null;
+  const wrapper = setup(null, { counter, errorMessage });
+  const decrementButton = findByTestAttr(wrapper, 'decrement-button');
+  decrementButton.simulate('click');
+  const errorMessageDisplay = findByTestAttr(wrapper, 'error-message');
+  expect(errorMessageDisplay.text()).toContain('Cannot go lower :(');
+});
+
+test('clears error when increment called when error is present', () => {
+  const counter = 0;
+  const wrapper = setup(null, { counter });
+
+  const decrementButton = findByTestAttr(wrapper, 'decrement-button');
+  decrementButton.simulate('click');
+  wrapper.update();
+
+  const errorMessage = findByTestAttr(wrapper, 'error-message');
+  expect(errorMessage.length).toBe(1);
+
+  const incrementButton = findByTestAttr(wrapper, 'increment-button');
+  incrementButton.simulate('click');
+  wrapper.update();
+
+  const err = findByTestAttr(wrapper, 'error-message');
+  expect(err.exists()).toBe(false);
 });
